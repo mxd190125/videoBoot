@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mxd.video.dao.VideoDao">
+
+    <!--是否收藏-->
+    <select id="isFavor" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM favor WHERE user_id = #{userId} AND video_id = #{videoId};
+    </select>
+    <!--收藏-->
+    <insert id="favor" >
+        INSERT INTO favor(video_id , user_id , favor_time) VALUES(#{videoId} , #{userId} , NOW());
+    </insert>
+    <!--取消收藏-->
+    <delete id="cancelFavor">
+        DELETE FROM favor WHERE video_id = #{videoId} AND user_id = #{userId};
+    </delete>
+    <!--是否点赞-->
+    <select id="isPraise" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM praise WHERE user_id = #{userId} AND video_id = #{videoId};
+    </select>
+    <!--点赞-->
+    <insert id="praise">
+        INSERT INTO praise(video_id , user_id , praise_time) VALUES(#{videoId} , #{userId} , NOW());
+    </insert>
+    <update id="addPraiseNum">
+        UPDATE video SET praise_num=praise_num+1 WHERE id=#{videoId} ;
+    </update>
+    <!-- 取消点赞-->
+    <delete id="cancelPraise">
+        DELETE FROM praise WHERE video_id = #{videoId} AND user_id = #{userId};
+    </delete>
+    <update id="subPraiseNum">
+        UPDATE video SET praise_num=praise_num-1 WHERE id=#{videoId} ;
+    </update>
+    <!--浏览量+1-->
+    <update id="addViewNum">
+        UPDATE video SET view_num = view_num + 1 WHERE id =#{videoId} ;
+    </update>
+    <!--添加访问记录-->
+    <insert id="addHistory">
+        INSERT INTO history (video_id , user_id , watch_time)VALUES(#{videoId} , #{userId} ,NOW());
+    </insert>
+
+    <select id="getCollectVideos" resultType="Video">
+        SELECT v.id  AS id, title , cover AS faceUrl , url AS videoUrl ,
+       v.user_id AS userId , category_id AS categoryId , c.`name` AS categoryName ,
+       pub_time AS subTime , view_num AS viewNum , praise_num AS praiseNum ,
+       u.photoUrl AS photoUrl , u.username AS userName , v.`status` AS `status`
+       FROM video v INNER JOIN favor f ON f.video_id = v.id
+                    INNER JOIN category c ON c.id = v.category_id
+                    INNER JOIN `user` u ON u.id = f.user_id
+       WHERE f.user_id = #{userId} ORDER BY f.favor_time DESC;
+    </select>
+
+    <select id="getPraiseVideos" resultType="Video">
+        SELECT v.id  AS id, title , cover AS faceUrl , url AS videoUrl ,
+       v.user_id AS userId , category_id AS categoryId , c.`name` AS categoryName ,
+       pub_time AS subTime , view_num AS viewNum , praise_num AS praiseNum ,
+       u.photoUrl AS photoUrl , u.username AS userName , v.`status` AS `status`
+       FROM video v INNER JOIN praise p ON p.video_id = v.id
+                    INNER JOIN category c ON c.id = v.category_id
+                    INNER JOIN `user` u ON u.id = p.user_id
+       WHERE p.user_id = #{userId} ORDER BY p.praise_time DESC;
+    </select>
+
+    <select id="getWatchVideos" resultType="Video">
+        SELECT v.id  AS id, title , cover AS faceUrl , url AS videoUrl ,
+       v.user_id AS userId , category_id AS categoryId , c.`name` AS categoryName ,
+       pub_time AS subTime , view_num AS viewNum , praise_num AS praiseNum ,
+       u.photoUrl AS photoUrl , u.username AS userName , v.`status` AS `status`
+       FROM video v INNER JOIN history h ON h.video_id = v.id
+                    INNER JOIN category c ON c.id = v.category_id
+                    INNER JOIN `user` u ON u.id = h.user_id
+       WHERE h.user_id = #{userId} ORDER BY h.watch_time DESC;
+    </select>
+    <!--查询某个视频的评论-->
+    <select id="checkVideoDiscusses" resultType="Discuss">
+        SELECT d.id , video_id AS videoId , u.username AS userName , u.photoUrl AS photoUrl , d.content AS content, d.dis_time AS  disTime
+        FROM discuss d INNER JOIN `user` u ON u.id=d.user_id
+        INNER JOIN video v ON v.id = d.video_id
+        WHERE d.video_id = #{videoId} ORDER BY d.dis_time DESC;
+    </select>
+    <!--查看某个用户评论过的视频-->
+    <select id="checkDiscussedVideos" resultType="Video">
+        SELECT v.id AS id , title , u.username AS userName , c.`name` AS categoryName , v.cover AS faceUrl , v.url AS videoUrl , u.photoUrl AS photoUrl ,
+       v.pub_time AS subTime , v.view_num AS viewNum , v.praise_num AS praiseNum , v.`status` AS `status`
+       FROM video v INNER JOIN discuss d ON v.id = d.video_id
+       INNER JOIN `user` u ON u.id = d.user_id
+       INNER JOIN category c ON c.id = v.category_id
+       WHERE d.user_id = #{userId} ORDER BY d.dis_time DESC;
+    </select>
+    <!--用户评论-->
+    <insert id="subDiscuss">
+        INSERT INTO discuss (video_id , user_id , content , dis_time) VALUES (#{videoId} , #{userId} , #{content} , NOW());
+    </insert>
+</mapper>
